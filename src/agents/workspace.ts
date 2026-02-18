@@ -29,7 +29,9 @@ export const DEFAULT_HEARTBEAT_FILENAME = "HEARTBEAT.md";
 export const DEFAULT_BOOTSTRAP_FILENAME = "BOOTSTRAP.md";
 export const DEFAULT_MEMORY_FILENAME = "MEMORY.md";
 export const DEFAULT_MEMORY_ALT_FILENAME = "memory.md";
-const WORKSPACE_STATE_DIRNAME = ".openclaw";
+// NOTE: workspace-state.json is internal OpenClaw metadata.
+// It must NOT live inside the workspace directory, because many users keep the workspace under git.
+// Store it under the OpenClaw state dir instead.
 const WORKSPACE_STATE_FILENAME = "workspace-state.json";
 const WORKSPACE_STATE_VERSION = 1;
 
@@ -140,8 +142,14 @@ async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
-function resolveWorkspaceStatePath(dir: string): string {
-  return path.join(dir, WORKSPACE_STATE_DIRNAME, WORKSPACE_STATE_FILENAME);
+function resolveWorkspaceStatePath(_dir: string): string {
+  const home = resolveRequiredHomeDir(process.env, () => os.homedir());
+  const profile = process.env.OPENCLAW_PROFILE?.trim();
+  const base =
+    profile && profile.toLowerCase() !== "default"
+      ? path.join(home, ".openclaw", `state-${profile}`)
+      : path.join(home, ".openclaw", "state");
+  return path.join(base, WORKSPACE_STATE_FILENAME);
 }
 
 function parseWorkspaceOnboardingState(raw: string): WorkspaceOnboardingState | null {
